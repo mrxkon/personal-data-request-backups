@@ -58,6 +58,10 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		public function __construct() {
 			// Register the plugin on the Import screen.
 			add_action( 'admin_init', array( $this, 'register_importers' ) );
+
+			// Set the cron for the email exports.
+			$this->setup_cron();
+			add_action( 'pdr_auto_export_cron', array( $this, 'export_cron' ) );
 		}
 
 		/**
@@ -94,6 +98,30 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					array( $this, 'importer' )
 				);
 			}
+		}
+
+		/**
+		 * Setup the daily cron event.
+		 */
+		public function setup_cron() {
+			$enabled = get_option( 'pdr_backups_auto_backup' );
+
+			if ( $enabled ) {
+				if ( ! wp_next_scheduled( 'pdr_auto_export_cron' ) ) {
+					wp_schedule_event( time(), 'daily', 'pdr_auto_export_cron' );
+				}
+			} else {
+				if ( wp_next_scheduled( 'pdr_auto_export_cron' ) ) {
+					wp_clear_scheduled_hook( 'pdr_auto_export_cron' );
+				}
+			}
+		}
+
+		/**
+		 * Send export backup to email via cron.
+		 */
+		public function export_cron() {
+			error_log( 'sending mail' );
 		}
 
 		/**
