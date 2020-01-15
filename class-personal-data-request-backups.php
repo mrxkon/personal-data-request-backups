@@ -62,6 +62,9 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			// Set the cron for the email exports.
 			$this->setup_cron();
 			add_action( 'pdr_auto_export_cron', array( $this, 'export_cron' ) );
+
+			// Action for manually downloading the file.
+			add_action( 'admin_init', array( $this, 'manual_export' ) );
 		}
 
 		/**
@@ -223,6 +226,12 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 								</p>
 								<p class="form-actions">
 									<span class="spinner"></span>
+									<?php wp_nonce_field( 'pdr_manual_export', 'pdr-manual-export-nonce' ); ?>
+									<input
+										type="hidden"
+										name="pdr-manual-export"
+										value="pdr-manual-export"
+									/>
 									<input
 										type="submit"
 										class="button button-primary"
@@ -297,16 +306,61 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 						$( this ).find( '.spinner' ).addClass( 'is-active' );
 					});
 
-					$( '#pdr-export-form' ).on( 'submit', function( e ){
-						e.preventDefault();
-						$( this ).find( '.spinner' ).css( 'display', 'inline-block' );
-						$( this ).find( '.spinner' ).addClass( 'is-active' );
-					});
 				} ( jQuery ) );
 			</script>
 			<?php
 		}
 
+		/**
+		 * Handle Manual Export.
+		 */
+		public function manual_export() {
+			if ( isset( $_POST['pdr-manual-export'] ) && check_admin_referer( 'pdr_manual_export', 'pdr-manual-export-nonce' ) ) {
+				global $wpdb;
+				$exports = array();
+
+				$exports = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT ID, post_date, post_date_gmt, post_content, post_title, post_status, post_password, post_name, post_modified, post_modified_gmt, guid, post_type
+						FROM $wpdb->posts
+						WHERE post_type = %s
+						AND post_name = %s",
+						'user_request',
+						'export_personal_data'
+					),
+					ARRAY_A
+				);
+
+				$erasures = array();
+
+				$erasures = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT ID, post_date, post_date_gmt, post_content, post_title, post_status, post_password, post_name, post_modified, post_modified_gmt, guid, post_type
+						FROM $wpdb->posts
+						WHERE post_type = %s
+						AND post_name = %s",
+						'user_request',
+						'remove_personal_data'
+					),
+					ARRAY_A
+				);
+
+				$requests = array(
+					'exports'  => $exports,
+					'erasures' => $erasures,
+				);
+
+				$data = wp_json_encode( $requests );
+
+				header( 'Content-Type: application/json' );
+				header( 'Content-Disposition: attachment; filename="personal-data-request-backups-' . wp_date( 'dmY-His' ) . '.json"' );
+				header( 'Expires: 0' );
+				header( 'Cache-Control: must-revalidate' );
+				header( 'Content-Length: ' . strlen( $data ) );
+
+				file_put_contents( 'php://output', $data );
+			}
+		}
 	}
 
 	/**
