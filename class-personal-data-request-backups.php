@@ -287,17 +287,20 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				( function( $ ) {
 					$( '#pdr-settings-form' ).on( 'submit', function( e ){
 						e.preventDefault();
-						console.log( 'settings!' );
+						$( this ).find( '.spinner' ).css( 'display', 'inline-block' );
+						$( this ).find( '.spinner' ).addClass( 'is-active' );
 					});
 
 					$( '#pdr-import-form' ).on( 'submit', function( e ){
 						e.preventDefault();
-						console.log( 'import!' );
+						$( this ).find( '.spinner' ).css( 'display', 'inline-block' );
+						$( this ).find( '.spinner' ).addClass( 'is-active' );
 					});
 
 					$( '#pdr-export-form' ).on( 'submit', function( e ){
 						e.preventDefault();
-						console.log( 'export!' );
+						$( this ).find( '.spinner' ).css( 'display', 'inline-block' );
+						$( this ).find( '.spinner' ).addClass( 'is-active' );
 					});
 				} ( jQuery ) );
 			</script>
