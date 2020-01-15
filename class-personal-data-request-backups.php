@@ -95,7 +95,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					'pdr_backups_importer',
 					__( 'Personal Data Request Backups', 'pdr-backups' ),
 					__( 'Import &amp; Export Personal Data Requests', 'pdr-backups' ),
-					array( $this, 'importer' )
+					array( $this, 'import_page' )
 				);
 			}
 		}
@@ -127,7 +127,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		/**
 		 * Settings Screen.
 		 */
-		public function importer() {
+		public function import_page() {
 			$auto_export  = get_option( 'pdr_backups_auto_backup' );
 			$export_email = sanitize_email( get_option( 'pdr_backups_email' ) );
 			?>
