@@ -63,15 +63,16 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		/**
 		 * Populate options on plugin activation.
 		 */
-		public function plugin_activate() {
-			update_option( 'pdr_backups_email', '' );
+		public static function plugin_activate() {
+			$current_user = wp_get_current_user();
+			update_option( 'pdr_backups_email', $current_user->user_email );
 			update_option( 'pdr_backups_auto_backup', false );
 		}
 
 		/**
 		 * Remove options on plugin deactivation.
 		 */
-		public function plugin_deactivate() {
+		public static function plugin_deactivate() {
 			delete_option( 'pdr_backups_email' );
 			delete_option( 'pdr_backups_auto_backup' );
 		}
@@ -80,12 +81,19 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Register the plugin on the Import screen.
 		 */
 		public function register_importers() {
-			register_importer(
-				'pdr_backups_importer',
-				__( 'Personal Data Request Backups', 'pdr-backups' ),
-				__( 'Import &amp; Export Personal Data Requests', 'pdr-backups' ),
-				array( $this, 'importer' )
-			);
+			if (
+				current_user_can( 'manage_options' ) ||
+				current_user_can( 'manage_privacy_options' ) ||
+				current_user_can( 'export_others_personal_data' ) ||
+				current_user_can( 'erase_others_personal_data' )
+			) {
+				register_importer(
+					'pdr_backups_importer',
+					__( 'Personal Data Request Backups', 'pdr-backups' ),
+					__( 'Import &amp; Export Personal Data Requests', 'pdr-backups' ),
+					array( $this, 'importer' )
+				);
+			}
 		}
 
 		/**
@@ -122,21 +130,16 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							<h2><?php esc_html_e( 'Settings', 'pdr-backups' ); ?></h2>
 							<form method="post" id="pdr-settings-form">
 								<p>
-									<fieldset>
-										<legend class="screen-reader-text"><span><?php esc_html_e( 'Enable Automated Export', 'pdr-backups' ); ?></span></legend>
-										<label for="enable-auto-export">
-											<input
-												type="checkbox"
-												name="enable-auto-export"
-												id="enable-auto-export"
-												value="<?php echo esc_attr( $auto_export ); ?>"
-												<?php checked( $auto_export, '1', true ); ?>
-											/>
-											<span>
-												<?php esc_html_e( 'Enable automated export', 'pdr-backups' ); ?>
-											</span>
-										</label>
-									</fieldset>
+									<input
+										type="checkbox"
+										name="enable-auto-export"
+										id="enable-auto-export"
+										value="<?php echo esc_attr( $auto_export ); ?>"
+										<?php checked( $auto_export, '1', true ); ?>
+									/>
+									<label for="enable-auto-export">
+											<?php esc_html_e( 'Enable automated export', 'pdr-backups' ); ?>
+									</label>
 								</p>
 								<p>
 									<label for="pdr-email">
@@ -158,7 +161,11 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							<h2><?php esc_html_e( 'Import', 'pdr-backups' ); ?></h2>
 							<form method="post" id="pdr-import-form">
 								<p>
-									<input type="file" name="pdr-file" id="pdr-file" />
+									<input
+										type="file"
+										name="pdr-file"
+										id="pdr-file"
+									/>
 								</p>
 								<?php submit_button( __( 'Import', 'pdr-backups' ), 'secondary', 'pdr-import-button' ); ?>
 							</form>
