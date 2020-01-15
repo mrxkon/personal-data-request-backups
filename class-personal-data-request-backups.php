@@ -180,7 +180,15 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										class="large-text"
 										value="<?php echo esc_attr( $export_email ); ?>" />
 								</p>
-								<?php submit_button( __( 'Save' ), 'secondary', 'pdr-settings-button' ); ?>
+								<p class="form-actions">
+									<span class="msg"></span>
+									<span class="spinner"></span>
+									<input
+										type="submit"
+										class="button"
+										value="<?php esc_html_e( 'Save', 'pdr-backups' ); ?>"
+									/>
+								</p>
 							</form>
 						</div>
 					</div>
@@ -195,7 +203,14 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										id="pdr-file"
 									/>
 								</p>
-								<?php submit_button( __( 'Import', 'pdr-backups' ), 'secondary', 'pdr-import-button' ); ?>
+								<p class="form-actions">
+									<span class="spinner"></span>
+									<input
+										type="submit"
+										class="button"
+										value="<?php esc_html_e( 'Import', 'pdr-backups' ); ?>"
+									/>
+								</p>
 							</form>
 						</div>
 					</div>
@@ -206,7 +221,14 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 								<p>
 									<?php esc_html_e( 'You will be prompted to save a file.', 'pdr-backups' ); ?>
 								</p>
-								<?php submit_button( __( 'Export', 'pdr-backups' ), 'primary', 'pdr-export-button' ); ?>
+								<p class="form-actions">
+									<span class="spinner"></span>
+									<input
+										type="submit"
+										class="button button-primary"
+										value="<?php esc_html_e( 'Export', 'pdr-backups' ); ?>"
+									/>
+								</p>
 							</form>
 						</div>
 					</div>
@@ -244,17 +266,39 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					margin-top: 0;
 				}
 
-				.pdr-content .form-wrapper p.submit {
+				.pdr-content .form-wrapper .form-actions {
 					padding-bottom: 0;
 					margin-bottom: 0;
 					text-align: right;
+				}
+
+				.pdr-content .form-wrapper .form-actions .spinner {
+					float: unset;
+					display: none;
+				}
+
+				.pdr-content .form-wrapper .form-actions .msg {
+					display: inline-block;
 				}
 			</style>
 
 			<!-- scripts -->
 			<script>
 				( function( $ ) {
-					console.log( 'hey' );
+					$( '#pdr-settings-form' ).on( 'submit', function( e ){
+						e.preventDefault();
+						console.log( 'settings!' );
+					});
+
+					$( '#pdr-import-form' ).on( 'submit', function( e ){
+						e.preventDefault();
+						console.log( 'import!' );
+					});
+
+					$( '#pdr-export-form' ).on( 'submit', function( e ){
+						e.preventDefault();
+						console.log( 'export!' );
+					});
 				} ( jQuery ) );
 			</script>
 			<?php
