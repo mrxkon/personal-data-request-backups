@@ -150,7 +150,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					<?php esc_html_e( 'Exporting &amp; Importing Requests as a separate backup will help you on keeping always a latest separate copy of the requests for an occasion like that.', 'pdr-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily cron or manually request an aditional Export when needed.', 'pdr-backups' ); ?>
+					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily cron or manually request an additional Export when needed.', 'pdr-backups' ); ?>
 				</p>
 				<div class="pdr-forms">
 					<div class="form-wrapper">
