@@ -457,7 +457,8 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							data: args,
 							success: function( response ) {
 								if ( true === response.success ) {
-									//window.location = response.data
+									msg.html( response.data );
+									msg.css( 'color', 'green' );
 								} else {
 									msg.html( response.data );
 									msg.css( 'color', 'red' );
@@ -546,27 +547,73 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 			// Import Personal Data Exports.
 			foreach ( $import_array->exports as $export ) {
-				$post = wp_insert_post(
+				$ex_post = wp_insert_post(
 					array(
-						'' => '',
+						'post_author'           => $export->post_author,
+						'post_date'             => $export->post_date,
+						'post_date_gmt'         => $export->post_date_gmt,
+						'post_content'          => $export->post_content,
+						'post_title'            => $export->post_title,
+						'post_excerpt'          => $export->post_excerpt,
+						'post_status'           => $export->post_status,
+						'comment_status'        => $export->comment_status,
+						'ping_status'           => $export->ping_status,
+						'post_password'         => $export->post_password,
+						'post_name'             => $export->post_name,
+						'to_ping'               => $export->to_ping,
+						'pinged'                => $export->pinged,
+						'post_modified'         => $export->post_modified,
+						'post_modified_gmt'     => $export->post_modified_gmt,
+						'post_content_filtered' => $export->post_content_filtered,
+						'post_parent'           => $export->post_parent,
+						'guid'                  => $export->guid,
+						'menu_order'            => $export->menu_order,
+						'post_type'             => $export->post_type,
+						'post_mime_type'        => $export->post_mime_type,
+						'comment_count'         => $export->comment_count,
 					)
 				);
 
-				if ( is_wp_error( $post ) ) {
+				if ( 0 === $ex_post || is_wp_error( $ex_post ) ) {
 					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
 				}
 			}
 
 			// Import Personal Data Erasures.
 			foreach ( $import_array->erasures as $erasure ) {
-				error_log( print_r( $erasure, true ) );
+				$er_post = wp_insert_post(
+					array(
+						'post_author'           => $erasure->post_author,
+						'post_date'             => $erasure->post_date,
+						'post_date_gmt'         => $erasure->post_date_gmt,
+						'post_content'          => $erasure->post_content,
+						'post_title'            => $erasure->post_title,
+						'post_excerpt'          => $erasure->post_excerpt,
+						'post_status'           => $erasure->post_status,
+						'comment_status'        => $erasure->comment_status,
+						'ping_status'           => $erasure->ping_status,
+						'post_password'         => $erasure->post_password,
+						'post_name'             => $erasure->post_name,
+						'to_ping'               => $erasure->to_ping,
+						'pinged'                => $erasure->pinged,
+						'post_modified'         => $erasure->post_modified,
+						'post_modified_gmt'     => $erasure->post_modified_gmt,
+						'post_content_filtered' => $erasure->post_content_filtered,
+						'post_parent'           => $erasure->post_parent,
+						'guid'                  => $erasure->guid,
+						'menu_order'            => $erasure->menu_order,
+						'post_type'             => $erasure->post_type,
+						'post_mime_type'        => $erasure->post_mime_type,
+						'comment_count'         => $erasure->comment_count,
+					)
+				);
 
-				if ( is_wp_error( $post ) ) {
-					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
+				if ( 0 === $er_post || is_wp_error( $ex_post ) ) {
+					wp_send_json_error( esc_html__( 'Could not import all Erasure Requests.', 'pdr-backups' ) );
 				}
 			}
 
-			wp_send_json_success();
+			wp_send_json_success( esc_html__( 'Success!', 'pdr-backups' ) );
 		} // public function import()
 
 
