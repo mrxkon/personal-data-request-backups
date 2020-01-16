@@ -437,11 +437,13 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 						var spinner = $( this ).find( '.spinner' ),
 							msg = $( this ).find( '.msg' ),
-							args = {
-								'action': 'pdr-manual-import',
-								'pdr_nonce': $( '#pdr-manual-import-nonce' ).val()
-							};
+							args = new FormData();
 
+						args.append( 'action', 'pdr-manual-import' );
+						args.append( 'pdr_nonce', $( '#pdr-manual-import-nonce' ).val() );
+						args.append( 'pdr-file', $( '#pdr-file' )[0].files[0] );
+
+						msg.html( '' );
 						spinner.css( 'display', 'inline-block' );
 						spinner.addClass( 'is-active' );
 
@@ -450,6 +452,8 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							method: 'POST',
 							global: false,
 							dataType: 'json',
+							contentType: false,
+							processData: false,
 							data: args,
 							success: function( response ) {
 								if ( true === response.success ) {
@@ -475,6 +479,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 								'pdr_nonce': $( '#pdr-manual-export-nonce' ).val()
 							};
 
+						msg.html( '' );
 						spinner.css( 'display', 'inline-block' );
 						spinner.addClass( 'is-active' );
 
@@ -529,7 +534,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			}
 
 			// Clean the database from existing requests.
-			//$this->clean_requests();
+			$this->clean_requests();
 
 			// Read the contents of the .json file.
 			$json = file_get_contents( wp_normalize_path( $_FILES['pdr-file']['tmp_name'] ) );
@@ -539,7 +544,27 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 			$import_array = json_decode( base64_decode( $json ) );
 
-			error_log( print_r( $import_array, true ) );
+			// Import Personal Data Exports.
+			foreach ( $import_array->exports as $export ) {
+				$post = wp_insert_post(
+					array(
+						'' => '',
+					)
+				);
+
+				if ( is_wp_error( $post ) ) {
+					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
+				}
+			}
+
+			// Import Personal Data Erasures.
+			foreach ( $import_array->erasures as $erasure ) {
+				error_log( print_r( $erasure, true ) );
+
+				if ( is_wp_error( $post ) ) {
+					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
+				}
+			}
 
 			wp_send_json_success();
 		} // public function import()
