@@ -37,22 +37,16 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 	class Personal_Data_Request_Backups {
 		/**
 		 * Instance.
-		 *
-		 * @var $instance.
 		 */
 		private static $instance = null;
 
 		/**
 		 * Plugin exports dir.
-		 *
-		 * @var $pdr_exports_dir;
 		 */
 		private $pdr_exports_dir;
 
 		/**
 		 * Plugin exports URL.
-		 *
-		 * @var $pdr_exports_url;
 		 */
 		private $pdr_exports_url;
 
@@ -90,8 +84,8 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			$this->set_pdr_exports_dir();
 
 			// Ajax actions.
-			add_action( 'wp_ajax_pdr-manual-export', array( $this, 'export' ) );
-			add_action( 'wp_ajax_pdr-manual-import', array( $this, 'import' ) );
+			add_action( 'wp_ajax_pdr-manual-export', array( $this, 'manual_export' ) );
+			add_action( 'wp_ajax_pdr-manual-import', array( $this, 'manual_import' ) );
 		} // public function __construct()
 
 
@@ -197,7 +191,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
-		 * Setup the daily cron event.
+		 * Setup the daily cron events.
 		 */
 		public function setup_crons() {
 			// Auto backup cron.
@@ -218,17 +212,6 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				wp_schedule_event( time() + 60 * 60, 'hourly', 'pdr_clean_files' );
 			}
 		} // public function setup_cron()
-
-
-
-
-
-		/**
-		 * Send export backup to email via cron.
-		 */
-		public function export_cron() {
-			error_log( 'sending mail' );
-		} // public function export_cron()
 
 
 
@@ -515,7 +498,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		/**
 		 * Handle Import.
 		 */
-		public function import() {
+		public function manual_import() {
 			// Make checks and error out if something is wrong.
 			if ( ! isset( $_POST['pdr_nonce'] ) ) {
 				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
@@ -621,9 +604,43 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
-		 * Handle Export.
+		 * Crom export.
 		 */
-		public function export() {
+		public function export_cron() {
+			$export = $this->export( 'path' );
+
+			$to      = get_option( 'pdr_backups_email' );
+			$subject = sprintf(
+				// translators: $1%s The site URL.
+				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
+				get_site_url()
+			);
+			$subject = apply_filters( 'pdr_backups_email_subject', $subject );
+			$message = sprintf(
+				// translators: $1%s The site URL.
+				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
+				get_site_url()
+			);
+			$message = apply_filters( 'pdr_backups_email_message', $message );
+
+			wp_mail(
+				$to,
+				$subject,
+				$message,
+				'',
+				array(
+					$export,
+				)
+			);
+		} // public function export_cron()
+
+
+
+
+		/**
+		 * Manual Export.
+		 */
+		public function manual_export() {
 			// Make checks and error out if something is wrong.
 			if ( ! isset( $_POST['pdr_nonce'] ) ) {
 				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
@@ -635,8 +652,27 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
 			}
 
-			if ( ! class_exists( 'ZipArchive' ) ) {
-				wp_send_json_error( esc_html__( 'ZipArchive is not available.', 'pdr-backups' ) );
+			$export = $this->export( 'url' );
+
+			wp_send_json_success( $export );
+		}
+
+
+
+
+
+		/**
+		 * Handle Export.
+		 */
+		public function export( $return_type ) {
+			// Setup the accepted type.
+			$accepted_types = array(
+				'path',
+				'url',
+			);
+
+			if ( ! $return_type || ! in_array( $return_type, $accepted_types, true ) ) {
+				$return_type = 'url';
 			}
 
 			// Export Personal Data Exports.
@@ -694,32 +730,15 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			fwrite( $file, $data );
 			fclose( $file );
 
-			// Zip the exported file.
-			$zip_file_name = 'personal-data-request-backups-' . $date_time . '.zip';
-			$zip_file_path = $this->pdr_exports_dir . $zip_file_name;
-
-			if ( file_exists( $zip_file_path ) ) {
-				wp_delete_file( $zip_file_path );
-			}
-
-			$zip = new ZipArchive;
-			if ( true === $zip->open( $zip_file_path, ZipArchive::CREATE ) ) {
-				if ( ! $zip->addFile( $json_file_path, $json_file_name ) ) {
-					wp_send_json_error( esc_html__( 'Unable to zip file.', 'pdr-backups' ) );
-				}
-				$zip->close();
-			} else {
-				wp_send_json_error( esc_html__( 'Unable to open zip file.', 'pdr-backups' ) );
-			}
-
-			// Delete the .json file since the .zip was created.
-			wp_delete_file( $json_file_path );
-
 			// Send the file for download.
-			$pdr_file_url = $this->pdr_exports_url . $zip_file_name;
+			if ( 'url' === $return_type ) {
+				$pdr_file_url = $this->pdr_exports_url . $json_file_name;
+			} elseif ( 'path' === $return_type ) {
+				$pdr_file_url = $this->pdr_exports_dir . $json_file_name;
+			}
 
-			wp_send_json_success( $pdr_file_url );
-		} // public function manual_export()
+			return $pdr_file_url;
+		} // public function export()
 
 
 
