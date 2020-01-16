@@ -89,8 +89,9 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			// Create and set the uploads dir.
 			$this->set_pdr_exports_dir();
 
-			// Action for the manual export.
+			// Ajax actions.
 			add_action( 'wp_ajax_pdr-manual-export', array( $this, 'export' ) );
+			add_action( 'wp_ajax_pdr-manual-import', array( $this, 'import' ) );
 		} // public function __construct()
 
 
@@ -253,31 +254,9 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
-		 * Settings Screen.
+		 * Import Screen.
 		 */
 		public function import_page() {
-			// If the form checks pass run the import.
-			if (
-				! empty( $_FILES['pdr-file']['name'] ) &&
-				'json' === strtolower( pathinfo( $_FILES['pdr-file']['name'], PATHINFO_EXTENSION ) ) &&
-				isset( $_POST['pdr-import'] ) &&
-				check_admin_referer( 'pdr_import', 'pdr-import-nonce' )
-			) {
-				// Clean the database from existing requests.
-				//$this->clean_requests();
-
-				// Read the contents of the .json file.
-				$json = file_get_contents( wp_normalize_path( $_FILES['pdr-file']['tmp_name'] ) );
-
-				// Remove the temporary file.
-				unset( $_FILES['pdr-file']['tmp_name'] );
-
-				$import_array = json_decode( base64_decode( $json ) );
-
-				error_log( print_r( $import_array, true ) );
-			}
-
-			// Page content.
 			$auto_export  = get_option( 'pdr_backups_auto_backup' );
 			$export_email = sanitize_email( get_option( 'pdr_backups_email' ) );
 			?>
@@ -358,15 +337,10 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										id="pdr-file"
 									/>
 								</p>
-								<?php wp_nonce_field( 'pdr_import', 'pdr-import-nonce' ); ?>
-								<input
-									type="hidden"
-									name="pdr-import"
-									value="pdr-import"
-								/>
 								<p class="form-actions">
 									<span class="msg"></span>
 									<span class="spinner"></span>
+									<?php wp_nonce_field( 'pdr_manual_import', 'pdr-manual-import-nonce' ); ?>
 									<input
 										type="submit"
 										class="button"
@@ -461,10 +435,34 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					$( '#pdr-import-form' ).on( 'submit', function( e ) {
 						e.preventDefault();
 
-						var spinner = $( this ).find( '.spinner' );
+						var spinner = $( this ).find( '.spinner' ),
+							msg = $( this ).find( '.msg' ),
+							args = {
+								'action': 'pdr-manual-import',
+								'pdr_nonce': $( '#pdr-manual-import-nonce' ).val()
+							};
 
 						spinner.css( 'display', 'inline-block' );
 						spinner.addClass( 'is-active' );
+
+						$.ajax({
+							url: ajaxurl,
+							method: 'POST',
+							global: false,
+							dataType: 'json',
+							data: args,
+							success: function( response ) {
+								if ( true === response.success ) {
+									//window.location = response.data
+								} else {
+									msg.html( response.data );
+									msg.css( 'color', 'red' );
+								}
+
+								spinner.css( 'display', 'none' );
+								spinner.removeClass( 'is-active' );
+							}
+						});
 					});
 
 					$( '#pdr-export-form' ).on( 'submit', function( e ) {
@@ -503,6 +501,48 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			</script>
 			<?php
 		} // public function import_page()
+
+
+
+
+
+		/**
+		 * Handle Import.
+		 */
+		public function import() {
+			// Make checks and error out if something is wrong.
+			if ( ! isset( $_POST['pdr_nonce'] ) ) {
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+			}
+
+			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
+
+			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_import' ) ) {
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+			}
+
+			if (
+				empty( $_FILES['pdr-file']['name'] ) ||
+				'json' !== strtolower( pathinfo( $_FILES['pdr-file']['name'], PATHINFO_EXTENSION ) )
+			) {
+				wp_send_json_error( esc_html__( 'Please upload the json file.', 'pdr-backups' ) );
+			}
+
+			// Clean the database from existing requests.
+			//$this->clean_requests();
+
+			// Read the contents of the .json file.
+			$json = file_get_contents( wp_normalize_path( $_FILES['pdr-file']['tmp_name'] ) );
+
+			// Remove the temporary file.
+			unset( $_FILES['pdr-file']['tmp_name'] );
+
+			$import_array = json_decode( base64_decode( $json ) );
+
+			error_log( print_r( $import_array, true ) );
+
+			wp_send_json_success();
+		} // public function import()
 
 
 
