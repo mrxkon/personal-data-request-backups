@@ -33,7 +33,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die( 'We\'re sorry, but you can not directly access this file.' );
 }
 
+// If another Personal_Data_Request_Backups class exists don't do anything /shrug.
 if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
+	/**
+	 * Personal_Data_Request_Backups class.
+	 */
 	class Personal_Data_Request_Backups {
 		/**
 		 * Instance.
@@ -655,7 +659,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			$export = $this->export( 'url' );
 
 			wp_send_json_success( $export );
-		}
+		} // public function manual_export()
 
 
 
