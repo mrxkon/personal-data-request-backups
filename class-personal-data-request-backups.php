@@ -150,11 +150,16 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					<?php esc_html_e( 'This creates a problem as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'pdr-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'Exporting &amp; Importing Requests as a separate backup will help you on keeping always a latest separate copy of the requests for an occasion like that.', 'pdr-backups' ); ?>
+					<?php esc_html_e( 'Exporting &amp; importing the Personal Data equests as a separate backup will help you on keeping always a latest separate copy of the requests for an occasion like that.', 'pdr-backups' ); ?>
 				</p>
 				<p>
 					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily cron or manually request an additional Export when needed.', 'pdr-backups' ); ?>
 				</p>
+				<div class="notice notice-warning inline">
+					<p>
+						<?php _e( '<strong>Important!</strong> By importing an existing JSON file all current Requests that are registered in the database will be removed. Both of the Export Personal Data &amp; Erasure Personal Data request lists will be re-created exactly as they are found in the JSON file.', 'pdr-backups' ); ?>
+					</p>
+				</div>
 				<div class="pdr-forms">
 					<div class="form-wrapper">
 						<div class="form-content">
@@ -321,7 +326,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 				$exports = $wpdb->get_results(
 					$wpdb->prepare(
-						"SELECT ID, post_date, post_date_gmt, post_content, post_title, post_status, post_password, post_name, post_modified, post_modified_gmt, guid, post_type
+						"SELECT *
 						FROM $wpdb->posts
 						WHERE post_type = %s
 						AND post_name = %s",
@@ -335,7 +340,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 				$erasures = $wpdb->get_results(
 					$wpdb->prepare(
-						"SELECT ID, post_date, post_date_gmt, post_content, post_title, post_status, post_password, post_name, post_modified, post_modified_gmt, guid, post_type
+						"SELECT *
 						FROM $wpdb->posts
 						WHERE post_type = %s
 						AND post_name = %s",
