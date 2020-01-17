@@ -25,3 +25,25 @@ Exporting & importing the Personal Data Requests as a separate backup will help 
 You can set up an e-mail to receive the attached file of the backup on a daily cron or manually request an additional Export when needed.
 
 ![Screenshot](https://raw.githubusercontent.com/mrxkon/personal-data-request-backups/master/assets/screenshot1.png)
+
+You can use these filters to change the e-mail subject & message.
+
+```
+<?php
+
+add_filter(
+	'pdr_backups_email_subject',
+	function( $subject ) {
+		$subject = 'A different subject.';
+		return $subject;
+	}
+);
+
+add_filter(
+	'pdr_backups_email_message',
+	function( $message ) {
+		$message = 'A different message.';
+		return $message;
+	}
+);
+```
