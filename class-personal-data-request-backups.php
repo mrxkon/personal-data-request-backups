@@ -499,7 +499,6 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							data: args,
 							success: function( response ) {
 								if ( true === response.success ) {
-									console.log( response.data );
 									pdrDownloadFile(
 										response.data.file_contents,
 										response.data.file_name
