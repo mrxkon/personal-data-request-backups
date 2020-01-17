@@ -104,10 +104,18 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			// Get current user.
 			$current_user = wp_get_current_user();
 
-			// Create default options.
-			update_option( 'pdr_backups_email', $current_user->user_email );
-			update_option( 'pdr_backups_cron_backup', false );
-			update_option( 'pdr_backups_clean_files', false );
+			// Create default options if they don't exist.
+			if ( ! get_option( 'pdr_backups_email' ) ) {
+				update_option( 'pdr_backups_email', $current_user->user_email );
+			}
+
+			if ( ! get_option( 'pdr_backups_cron_backup' ) ) {
+				update_option( 'pdr_backups_cron_backup', false );
+			}
+
+			if ( ! get_option( 'pdr_backups_clean_files' ) ) {
+				update_option( 'pdr_backups_clean_files', false );
+			}
 		} // public static function plugin_activate()
 
 
