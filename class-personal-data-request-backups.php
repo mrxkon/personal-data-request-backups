@@ -410,6 +410,26 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 			<!-- scripts -->
 			<script>
+				function pdrDownloadFile( data, fileName, type='text/plain;charset=utf-8' ) {
+					const a = document.createElement( 'a' );
+
+					a.style.display = 'none';
+
+					document.body.appendChild( a );
+
+					a.href = window.URL.createObjectURL(
+						new Blob( [data], { type } )
+					);
+
+					a.setAttribute( 'download', fileName );
+
+					a.click();
+
+
+					window.URL.revokeObjectURL( a.href );
+					document.body.removeChild( a );
+				}
+
 				( function( $ ) {
 					$( '#pdr-settings-form' ).on( 'submit', function( e ) {
 						e.preventDefault();
@@ -479,7 +499,11 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							data: args,
 							success: function( response ) {
 								if ( true === response.success ) {
-									window.location = response.data
+									console.log( response.data );
+									pdrDownloadFile(
+										response.data.file_contents,
+										response.data.file_name
+									);
 								} else {
 									msg.html( response.data );
 									msg.css( 'color', 'red' );
@@ -611,7 +635,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Crom export.
 		 */
 		public function export_cron() {
-			$export = $this->export( 'path' );
+			$export = $this->export();
 
 			$to      = get_option( 'pdr_backups_email' );
 			$subject = sprintf(
@@ -633,7 +657,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				$message,
 				'',
 				array(
-					$export,
+					$export['file_path'],
 				)
 			);
 		} // public function export_cron()
@@ -656,9 +680,14 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
 			}
 
-			$export = $this->export( 'url' );
+			$export = $this->export();
 
-			wp_send_json_success( $export );
+			wp_send_json_success(
+				array(
+					'file_contents' => file_get_contents( $export['file_path'] ),
+					'file_name'     => $export['file_name'],
+				)
+			);
 		} // public function manual_export()
 
 
@@ -668,17 +697,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		/**
 		 * Handle Export.
 		 */
-		public function export( $return_type ) {
-			// Setup the accepted type.
-			$accepted_types = array(
-				'path',
-				'url',
-			);
-
-			if ( ! $return_type || ! in_array( $return_type, $accepted_types, true ) ) {
-				$return_type = 'url';
-			}
-
+		public function export() {
 			// Export Personal Data Exports.
 			global $wpdb;
 
@@ -735,11 +754,11 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			fclose( $file );
 
 			// Send the file for download.
-			if ( 'url' === $return_type ) {
-				$pdr_file_url = $this->pdr_exports_url . $json_file_name;
-			} elseif ( 'path' === $return_type ) {
-				$pdr_file_url = $this->pdr_exports_dir . $json_file_name;
-			}
+			$pdr_file_url = array(
+				'file_url'  => $this->pdr_exports_url . $json_file_name,
+				'file_path' => $this->pdr_exports_dir . $json_file_name,
+				'file_name' => $json_file_name,
+			);
 
 			return $pdr_file_url;
 		} // public function export()
