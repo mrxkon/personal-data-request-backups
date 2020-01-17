@@ -275,7 +275,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		public function settings_link( $links ) {
 			$links = array_merge(
 				array(
-					'<a href="' . esc_url( admin_url( '/tools.php?page=personal-data-request-backups' ) ) . '">' . __( 'Settings', 'personal-data-request-backups' ) . '</a>'
+					'<a href="' . esc_url( admin_url( '/tools.php?page=personal-data-request-backups' ) ) . '">' . __( 'Settings', 'personal-data-request-backups' ) . '</a>',
 				),
 				$links
 			);
