@@ -609,7 +609,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					<h1><?php esc_html_e( 'Personal Data Request Backups', 'personal-data-request-backups' ); ?></h1>
 					<p>
 						<?php
-						echo sprintf(
+						printf(
 							// translators: %1$s Links to Export Personal Data screen. %2$s Links to Erase Personal Data screen.
 							__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> requests.', 'personal-data-request-backups' ),
 							esc_attr( admin_url( 'export-personal-data.php' ) ),
@@ -722,7 +722,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							<form method="post" id="pdr-export-form">
 								<p>
 									<?php
-									echo sprintf(
+									printf(
 										// translators: %1$s The backup folder path.
 										esc_html__( 'All backups are saved in "%1$s". An hourly cron is set to automatically delete them for security reasons.', 'personal-data-request-backups' ),
 										$this->pdr_exports_dir
