@@ -604,13 +604,14 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			$clean_files  = get_option( 'pdr_backups_clean_files' );
 			$export_email = sanitize_email( get_option( 'pdr_backups_email' ) );
 			?>
+			<!-- Wrapper -->
 			<div class="wrap pdr-content">
 				<h1><?php esc_html_e( 'Personal Data Request Backups', 'personal-data-request-backups' ); ?></h1>
 				<p>
 					<?php
 					echo sprintf(
 						// translators: %1$s Links to Export Personal Data screen. %2$s Links to Erase Personal Data screen.
-						__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> Requests.', 'personal-data-request-backups' ),
+						__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> requests.', 'personal-data-request-backups' ),
 						esc_attr( admin_url( 'export-personal-data.php' ) ),
 						esc_attr( admin_url( 'erase-personal-data.php' ) )
 					);
@@ -620,33 +621,19 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					<?php esc_html_e( 'This leads to an issue as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'personal-data-request-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'Exporting &amp; importing the Personal Data Requests as a separate backup will help you on keeping always the latest possible separate copy of the requests occasions like that.', 'personal-data-request-backups' ); ?>
+					<?php esc_html_e( 'Keeping a separate backup will help you on having always the latest possible copy of the requests for occasions like that.', 'personal-data-request-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily basis or manually request an additional Export.', 'personal-data-request-backups' ); ?>
+					<?php esc_html_e( 'You can set up an e-mail to receive the backup as an attached file on a daily basis or manually create additional backups.', 'personal-data-request-backups' ); ?>
 				</p>
-				<div class="notice notice-warning inline">
-					<p>
-						<?php _e( '<strong>Important!</strong> By importing an existing JSON file all current Requests that are registered in the database will be removed. Both of the Export Personal Data &amp; Erasure Personal Data request lists will be re-created exactly as they are found in the JSON file.', 'personal-data-request-backups' ); ?>
-					</p>
-				</div>
+
+				<!-- Boxes -->
 				<div class="pdr-forms">
+					<!-- Settings Box -->
 					<div class="form-wrapper">
 						<div class="form-content">
 							<h2><?php esc_html_e( 'Settings', 'personal-data-request-backups' ); ?></h2>
 							<form method="post" id="pdr-settings-form">
-								<p>
-									<input
-										type="checkbox"
-										name="pdr-cron-backup"
-										id="pdr-cron-backup"
-										value="<?php echo esc_attr( $cron_backup ); ?>"
-										<?php checked( $cron_backup, '1', true ); ?>
-									/>
-									<label for="pdr-cron-backup">
-											<?php esc_html_e( 'Enable automated backups', 'personal-data-request-backups' ); ?>
-									</label>
-								</p>
 								<p>
 									<input
 										type="checkbox"
@@ -657,6 +644,18 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 									/>
 									<label for="pdr-clean-files">
 											<?php esc_html_e( 'Remove backup files on plugin deletion', 'personal-data-request-backups' ); ?>
+									</label>
+								</p>
+								<p>
+									<input
+										type="checkbox"
+										name="pdr-cron-backup"
+										id="pdr-cron-backup"
+										value="<?php echo esc_attr( $cron_backup ); ?>"
+										<?php checked( $cron_backup, '1', true ); ?>
+									/>
+									<label for="pdr-cron-backup">
+											<?php esc_html_e( 'Enable automated backups', 'personal-data-request-backups' ); ?>
 									</label>
 								</p>
 								<p>
@@ -683,9 +682,15 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							</form>
 						</div>
 					</div>
+					<!-- / Settings Box -->
+
+					<!-- Import Box -->
 					<div class="form-wrapper">
 						<div class="form-content">
 							<h2><?php esc_html_e( 'Import', 'personal-data-request-backups' ); ?></h2>
+							<p>
+								<?php esc_html_e( 'By importing an existing backup all current requests will be removed. Both of the Export  &amp; Erasure request lists will be re-created as they exist in the backup.', 'personal-data-request-backups' ); ?>
+							</p>
 							<form method="post" id="pdr-import-form" enctype="multipart/form-data">
 								<p>
 									<input
@@ -707,12 +712,24 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							</form>
 						</div>
 					</div>
+					<!-- / Import Box -->
+
+					<!-- Backup Box -->
 					<div class="form-wrapper">
 						<div class="form-content">
 							<h2><?php esc_html_e( 'Backup', 'personal-data-request-backups' ); ?></h2>
 							<form method="post" id="pdr-export-form">
 								<p>
-									<?php esc_html_e( 'You will be prompted to save a file.', 'personal-data-request-backups' ); ?>
+									<?php
+									echo sprintf(
+										// translators: %1$s The backup folder path.
+										esc_html__( 'All backups are saved in "%1$s". An hourly cron is set to automatically delete them for security reasons.', 'personal-data-request-backups' ),
+										$this->pdr_exports_dir
+									)
+									?>
+								</p>
+								<p>
+									<?php esc_html_e( 'By pressing "Backup" you will be prompted to save a file.', 'personal-data-request-backups' ); ?>
 								</p>
 								<p class="form-actions">
 									<span class="msg"></span>
@@ -727,10 +744,13 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 							</form>
 						</div>
 					</div>
+					<!-- / Backup Box -->
 				</div>
+				<!-- / Boxes -->
 			</div>
+			<!-- / Wrapper -->
 
-			<!-- styles -->
+			<!-- Styles -->
 			<style>
 				.pdr-content {
 					max-width: 900px;
@@ -778,7 +798,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				}
 			</style>
 
-			<!-- scripts -->
+			<!-- Scripts -->
 			<script>
 				function pdrDownloadFile( data, fileName, type='text/plain;charset=utf-8' ) {
 					const a = document.createElement( 'a' );
