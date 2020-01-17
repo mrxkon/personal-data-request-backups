@@ -709,7 +709,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					</div>
 					<div class="form-wrapper">
 						<div class="form-content">
-							<h2><?php esc_html_e( 'Export', 'personal-data-request-backups' ); ?></h2>
+							<h2><?php esc_html_e( 'Backup', 'personal-data-request-backups' ); ?></h2>
 							<form method="post" id="pdr-export-form">
 								<p>
 									<?php esc_html_e( 'You will be prompted to save a file.', 'personal-data-request-backups' ); ?>
@@ -721,7 +721,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 									<input
 										type="submit"
 										class="button button-primary"
-										value="<?php esc_html_e( 'Export', 'personal-data-request-backups' ); ?>"
+										value="<?php esc_html_e( 'Backup', 'personal-data-request-backups' ); ?>"
 									/>
 								</p>
 							</form>
