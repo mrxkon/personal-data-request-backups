@@ -666,7 +666,6 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										type="email"
 										name="pdr-email-address"
 										id="pdr-email-address"
-										class="large-text"
 										value="<?php echo esc_attr( $export_email ); ?>" />
 								</p>
 								<p class="form-actions">
@@ -753,7 +752,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			<!-- Styles -->
 			<style>
 				.pdr-content {
-					max-width: 900px;
+					max-width: 850px;
 				}
 
 				.pdr-content .pdr-forms {
@@ -781,6 +780,12 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					margin-top: 0;
 				}
 
+				.pdr-content .form-wrapper .form-content #pdr-email-address {
+					display: block;
+					clear: both;
+					margin-top: 5px;
+				}
+
 				.pdr-content .form-wrapper .form-actions {
 					padding-bottom: 0;
 					margin-bottom: 0;
@@ -795,6 +800,12 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				.pdr-content .form-wrapper .form-actions .msg {
 					display: inline-block;
 					margin-right: 10px;
+				}
+
+				@media ( max-width: 1024px ) {
+					.pdr-content .pdr-forms {
+						grid-template-columns: 1fr;
+					}
 				}
 			</style>
 
