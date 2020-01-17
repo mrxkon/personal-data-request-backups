@@ -254,6 +254,299 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
+		 * Handle Import.
+		 */
+		public function manual_import() {
+			// Make checks and error out if something is wrong.
+			if ( ! isset( $_POST['pdr_nonce'] ) ) {
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+			}
+
+			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
+
+			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_import' ) ) {
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+			}
+
+			if (
+				empty( $_FILES['pdr-file']['name'] ) ||
+				'json' !== strtolower( pathinfo( $_FILES['pdr-file']['name'], PATHINFO_EXTENSION ) )
+			) {
+				wp_send_json_error( esc_html__( 'Please upload the json file.', 'pdr-backups' ) );
+			}
+
+			// Clean the database from existing requests.
+			$this->clean_requests();
+
+			// Read the contents of the .json file.
+			$json = file_get_contents( wp_normalize_path( $_FILES['pdr-file']['tmp_name'] ) );
+
+			// Remove the temporary file.
+			unset( $_FILES['pdr-file']['tmp_name'] );
+
+			$import_array = json_decode( base64_decode( $json ) );
+
+			// Import Personal Data Exports.
+			foreach ( $import_array->exports as $export ) {
+				$ex_post = wp_insert_post(
+					array(
+						'post_author'           => $export->post_author,
+						'post_date'             => $export->post_date,
+						'post_date_gmt'         => $export->post_date_gmt,
+						'post_content'          => $export->post_content,
+						'post_title'            => $export->post_title,
+						'post_excerpt'          => $export->post_excerpt,
+						'post_status'           => $export->post_status,
+						'comment_status'        => $export->comment_status,
+						'ping_status'           => $export->ping_status,
+						'post_password'         => $export->post_password,
+						'post_name'             => $export->post_name,
+						'to_ping'               => $export->to_ping,
+						'pinged'                => $export->pinged,
+						'post_modified'         => $export->post_modified,
+						'post_modified_gmt'     => $export->post_modified_gmt,
+						'post_content_filtered' => $export->post_content_filtered,
+						'post_parent'           => $export->post_parent,
+						'guid'                  => $export->guid,
+						'menu_order'            => $export->menu_order,
+						'post_type'             => $export->post_type,
+						'post_mime_type'        => $export->post_mime_type,
+						'comment_count'         => $export->comment_count,
+					)
+				);
+
+				if ( 0 === $ex_post || is_wp_error( $ex_post ) ) {
+					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
+				}
+			}
+
+			// Import Personal Data Erasures.
+			foreach ( $import_array->erasures as $erasure ) {
+				$er_post = wp_insert_post(
+					array(
+						'post_author'           => $erasure->post_author,
+						'post_date'             => $erasure->post_date,
+						'post_date_gmt'         => $erasure->post_date_gmt,
+						'post_content'          => $erasure->post_content,
+						'post_title'            => $erasure->post_title,
+						'post_excerpt'          => $erasure->post_excerpt,
+						'post_status'           => $erasure->post_status,
+						'comment_status'        => $erasure->comment_status,
+						'ping_status'           => $erasure->ping_status,
+						'post_password'         => $erasure->post_password,
+						'post_name'             => $erasure->post_name,
+						'to_ping'               => $erasure->to_ping,
+						'pinged'                => $erasure->pinged,
+						'post_modified'         => $erasure->post_modified,
+						'post_modified_gmt'     => $erasure->post_modified_gmt,
+						'post_content_filtered' => $erasure->post_content_filtered,
+						'post_parent'           => $erasure->post_parent,
+						'guid'                  => $erasure->guid,
+						'menu_order'            => $erasure->menu_order,
+						'post_type'             => $erasure->post_type,
+						'post_mime_type'        => $erasure->post_mime_type,
+						'comment_count'         => $erasure->comment_count,
+					)
+				);
+
+				if ( 0 === $er_post || is_wp_error( $ex_post ) ) {
+					wp_send_json_error( esc_html__( 'Could not import all Erasure Requests.', 'pdr-backups' ) );
+				}
+			}
+
+			wp_send_json_success( esc_html__( 'Success!', 'pdr-backups' ) );
+		} // public function import()
+
+
+
+
+
+		/**
+		 * Cron export.
+		 */
+		public function export_cron() {
+			$export = $this->export();
+
+			$to      = get_option( 'pdr_backups_email' );
+			$subject = sprintf(
+				// translators: $1%s The site URL.
+				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
+				get_site_url()
+			);
+			$subject = apply_filters( 'pdr_backups_email_subject', $subject );
+			$message = sprintf(
+				// translators: $1%s The site URL.
+				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
+				get_site_url()
+			);
+			$message = apply_filters( 'pdr_backups_email_message', $message );
+
+			wp_mail(
+				$to,
+				$subject,
+				$message,
+				'',
+				array(
+					$export['file_path'],
+				)
+			);
+		} // public function export_cron()
+
+
+
+
+		/**
+		 * Manual Export.
+		 */
+		public function manual_export() {
+			// Make checks and error out if something is wrong.
+			if ( ! isset( $_POST['pdr_nonce'] ) ) {
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+			}
+
+			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
+
+			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_export' ) ) {
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+			}
+
+			$export = $this->export();
+
+			wp_send_json_success(
+				array(
+					'file_contents' => file_get_contents( $export['file_path'] ),
+					'file_name'     => $export['file_name'],
+				)
+			);
+		} // public function manual_export()
+
+
+
+
+
+		/**
+		 * Handle Export.
+		 */
+		public function export() {
+			// Export Personal Data Exports.
+			global $wpdb;
+
+			$exports = array();
+
+			$exports = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT *
+					FROM $wpdb->posts
+					WHERE post_type = %s
+					AND post_name = %s",
+					'user_request',
+					'export_personal_data'
+				),
+				ARRAY_A
+			);
+
+			// Export Personal Data Erasures.
+			$erasures = array();
+
+			$erasures = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT *
+					FROM $wpdb->posts
+					WHERE post_type = %s
+					AND post_name = %s",
+					'user_request',
+					'remove_personal_data'
+				),
+				ARRAY_A
+			);
+
+			// Merge the requests.
+			$requests = array(
+				'exports'  => $exports,
+				'erasures' => $erasures,
+			);
+
+			// Encode the requests and encode them to avoid losing characters.
+			$data = base64_encode( wp_json_encode( $requests ) );
+
+			// Export to file.
+			$date_time = wp_date( 'dmY-His' );
+
+			$json_file_name = 'personal-data-request-backups-' . $date_time . '.json';
+			$json_file_path = $this->pdr_exports_dir . $json_file_name;
+
+			if ( file_exists( $json_file_path ) ) {
+				wp_delete_file( $json_file_path );
+			}
+
+			$file = fopen( $json_file_path, 'w' );
+			fwrite( $file, $data );
+			fclose( $file );
+
+			// Send the file for download.
+			$pdr_file_url = array(
+				'file_url'  => $this->pdr_exports_url . $json_file_name,
+				'file_path' => $this->pdr_exports_dir . $json_file_name,
+				'file_name' => $json_file_name,
+			);
+
+			return $pdr_file_url;
+		} // public function export()
+
+
+
+
+
+		/**
+		 * Clean the database from existing requests.
+		 */
+		public function clean_requests() {
+			// Remove all existing Export Data Requests.
+			global $wpdb;
+
+			$del_exports = array();
+
+			$del_exports = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT ID
+					FROM $wpdb->posts
+					WHERE post_type = %s
+					AND post_name = %s",
+					'user_request',
+					'export_personal_data'
+				),
+				ARRAY_A
+			);
+
+			foreach ( $del_exports as $del_export ) {
+				wp_delete_post( $del_export['ID'] );
+			}
+
+			// Remove all existing Erasure Data Requests.
+			$del_erasures = array();
+
+			$del_erasures = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT ID
+					FROM $wpdb->posts
+					WHERE post_type = %s
+					AND post_name = %s",
+					'user_request',
+					'remove_personal_data'
+				),
+				ARRAY_A
+			);
+
+			foreach ( $del_erasures as $del_erasure ) {
+				wp_delete_post( $del_erasure['ID'] );
+			}
+		} // public function clean_requests()
+
+
+
+
+
+		/**
 		 * Import Screen.
 		 */
 		public function import_page() {
@@ -530,299 +823,6 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			</script>
 			<?php
 		} // public function import_page()
-
-
-
-
-
-		/**
-		 * Handle Import.
-		 */
-		public function manual_import() {
-			// Make checks and error out if something is wrong.
-			if ( ! isset( $_POST['pdr_nonce'] ) ) {
-				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
-			}
-
-			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
-
-			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_import' ) ) {
-				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
-			}
-
-			if (
-				empty( $_FILES['pdr-file']['name'] ) ||
-				'json' !== strtolower( pathinfo( $_FILES['pdr-file']['name'], PATHINFO_EXTENSION ) )
-			) {
-				wp_send_json_error( esc_html__( 'Please upload the json file.', 'pdr-backups' ) );
-			}
-
-			// Clean the database from existing requests.
-			$this->clean_requests();
-
-			// Read the contents of the .json file.
-			$json = file_get_contents( wp_normalize_path( $_FILES['pdr-file']['tmp_name'] ) );
-
-			// Remove the temporary file.
-			unset( $_FILES['pdr-file']['tmp_name'] );
-
-			$import_array = json_decode( base64_decode( $json ) );
-
-			// Import Personal Data Exports.
-			foreach ( $import_array->exports as $export ) {
-				$ex_post = wp_insert_post(
-					array(
-						'post_author'           => $export->post_author,
-						'post_date'             => $export->post_date,
-						'post_date_gmt'         => $export->post_date_gmt,
-						'post_content'          => $export->post_content,
-						'post_title'            => $export->post_title,
-						'post_excerpt'          => $export->post_excerpt,
-						'post_status'           => $export->post_status,
-						'comment_status'        => $export->comment_status,
-						'ping_status'           => $export->ping_status,
-						'post_password'         => $export->post_password,
-						'post_name'             => $export->post_name,
-						'to_ping'               => $export->to_ping,
-						'pinged'                => $export->pinged,
-						'post_modified'         => $export->post_modified,
-						'post_modified_gmt'     => $export->post_modified_gmt,
-						'post_content_filtered' => $export->post_content_filtered,
-						'post_parent'           => $export->post_parent,
-						'guid'                  => $export->guid,
-						'menu_order'            => $export->menu_order,
-						'post_type'             => $export->post_type,
-						'post_mime_type'        => $export->post_mime_type,
-						'comment_count'         => $export->comment_count,
-					)
-				);
-
-				if ( 0 === $ex_post || is_wp_error( $ex_post ) ) {
-					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
-				}
-			}
-
-			// Import Personal Data Erasures.
-			foreach ( $import_array->erasures as $erasure ) {
-				$er_post = wp_insert_post(
-					array(
-						'post_author'           => $erasure->post_author,
-						'post_date'             => $erasure->post_date,
-						'post_date_gmt'         => $erasure->post_date_gmt,
-						'post_content'          => $erasure->post_content,
-						'post_title'            => $erasure->post_title,
-						'post_excerpt'          => $erasure->post_excerpt,
-						'post_status'           => $erasure->post_status,
-						'comment_status'        => $erasure->comment_status,
-						'ping_status'           => $erasure->ping_status,
-						'post_password'         => $erasure->post_password,
-						'post_name'             => $erasure->post_name,
-						'to_ping'               => $erasure->to_ping,
-						'pinged'                => $erasure->pinged,
-						'post_modified'         => $erasure->post_modified,
-						'post_modified_gmt'     => $erasure->post_modified_gmt,
-						'post_content_filtered' => $erasure->post_content_filtered,
-						'post_parent'           => $erasure->post_parent,
-						'guid'                  => $erasure->guid,
-						'menu_order'            => $erasure->menu_order,
-						'post_type'             => $erasure->post_type,
-						'post_mime_type'        => $erasure->post_mime_type,
-						'comment_count'         => $erasure->comment_count,
-					)
-				);
-
-				if ( 0 === $er_post || is_wp_error( $ex_post ) ) {
-					wp_send_json_error( esc_html__( 'Could not import all Erasure Requests.', 'pdr-backups' ) );
-				}
-			}
-
-			wp_send_json_success( esc_html__( 'Success!', 'pdr-backups' ) );
-		} // public function import()
-
-
-
-
-
-		/**
-		 * Crom export.
-		 */
-		public function export_cron() {
-			$export = $this->export();
-
-			$to      = get_option( 'pdr_backups_email' );
-			$subject = sprintf(
-				// translators: $1%s The site URL.
-				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
-				get_site_url()
-			);
-			$subject = apply_filters( 'pdr_backups_email_subject', $subject );
-			$message = sprintf(
-				// translators: $1%s The site URL.
-				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
-				get_site_url()
-			);
-			$message = apply_filters( 'pdr_backups_email_message', $message );
-
-			wp_mail(
-				$to,
-				$subject,
-				$message,
-				'',
-				array(
-					$export['file_path'],
-				)
-			);
-		} // public function export_cron()
-
-
-
-
-		/**
-		 * Manual Export.
-		 */
-		public function manual_export() {
-			// Make checks and error out if something is wrong.
-			if ( ! isset( $_POST['pdr_nonce'] ) ) {
-				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
-			}
-
-			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
-
-			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_export' ) ) {
-				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
-			}
-
-			$export = $this->export();
-
-			wp_send_json_success(
-				array(
-					'file_contents' => file_get_contents( $export['file_path'] ),
-					'file_name'     => $export['file_name'],
-				)
-			);
-		} // public function manual_export()
-
-
-
-
-
-		/**
-		 * Handle Export.
-		 */
-		public function export() {
-			// Export Personal Data Exports.
-			global $wpdb;
-
-			$exports = array();
-
-			$exports = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT *
-					FROM $wpdb->posts
-					WHERE post_type = %s
-					AND post_name = %s",
-					'user_request',
-					'export_personal_data'
-				),
-				ARRAY_A
-			);
-
-			// Export Personal Data Erasures.
-			$erasures = array();
-
-			$erasures = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT *
-					FROM $wpdb->posts
-					WHERE post_type = %s
-					AND post_name = %s",
-					'user_request',
-					'remove_personal_data'
-				),
-				ARRAY_A
-			);
-
-			// Merge the requests.
-			$requests = array(
-				'exports'  => $exports,
-				'erasures' => $erasures,
-			);
-
-			// Encode the requests and encode them to avoid losing characters.
-			$data = base64_encode( wp_json_encode( $requests ) );
-
-			// Export to file.
-			$date_time = wp_date( 'dmY-His' );
-
-			$json_file_name = 'personal-data-request-backups-' . $date_time . '.json';
-			$json_file_path = $this->pdr_exports_dir . $json_file_name;
-
-			if ( file_exists( $json_file_path ) ) {
-				wp_delete_file( $json_file_path );
-			}
-
-			$file = fopen( $json_file_path, 'w' );
-			fwrite( $file, $data );
-			fclose( $file );
-
-			// Send the file for download.
-			$pdr_file_url = array(
-				'file_url'  => $this->pdr_exports_url . $json_file_name,
-				'file_path' => $this->pdr_exports_dir . $json_file_name,
-				'file_name' => $json_file_name,
-			);
-
-			return $pdr_file_url;
-		} // public function export()
-
-
-
-
-
-		/**
-		 * Clean the database from existing requests.
-		 */
-		public function clean_requests() {
-			// Remove all existing Export Data Requests.
-			global $wpdb;
-
-			$del_exports = array();
-
-			$del_exports = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT ID
-					FROM $wpdb->posts
-					WHERE post_type = %s
-					AND post_name = %s",
-					'user_request',
-					'export_personal_data'
-				),
-				ARRAY_A
-			);
-
-			foreach ( $del_exports as $del_export ) {
-				wp_delete_post( $del_export['ID'] );
-			}
-
-			// Remove all existing Erasure Data Requests.
-			$del_erasures = array();
-
-			$del_erasures = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT ID
-					FROM $wpdb->posts
-					WHERE post_type = %s
-					AND post_name = %s",
-					'user_request',
-					'remove_personal_data'
-				),
-				ARRAY_A
-			);
-
-			foreach ( $del_erasures as $del_erasure ) {
-				wp_delete_post( $del_erasure['ID'] );
-			}
-		} // public function import()
 	} // class Personal_Data_Request_Backups
 
 
