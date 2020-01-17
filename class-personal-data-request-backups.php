@@ -117,7 +117,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		/**
 		 * Remove options on plugin deactivation.
 		 */
-		public static function plugin_deactivate() {
+		public static function plugin_uninstall() {
 			if ( get_option( 'pdr_backups_clean_files' ) ) {
 				// Find WP uploads directory.
 				$wp_upload_dir = wp_upload_dir();
@@ -141,7 +141,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			// Remove crons.
 			wp_clear_scheduled_hook( 'pdr_cron_backup' );
 			wp_clear_scheduled_hook( 'pdr_clean_files' );
-		} // public static function plugin_deactivate()
+		} // public static function plugin_uninstall()
 
 
 
@@ -666,7 +666,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										<?php checked( $clean_files, '1', true ); ?>
 									/>
 									<label for="pdr-clean-files">
-											<?php esc_html_e( 'Remove backup files on deactivation', 'pdr-backups' ); ?>
+											<?php esc_html_e( 'Remove backup files on plugin deletion', 'pdr-backups' ); ?>
 									</label>
 								</p>
 								<p>
@@ -965,7 +965,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 	register_activation_hook( __FILE__, array( 'Personal_Data_Request_Backups', 'plugin_activate' ) );
 
 	/**
-	 * Dectivation Hook
+	 * Uninstall Hook
 	 */
-	register_deactivation_hook( __FILE__, array( 'Personal_Data_Request_Backups', 'plugin_deactivate' ) );
+	register_uninstall_hook( __FILE__, array( 'Personal_Data_Request_Backups', 'plugin_uninstall' ) );
 } // if ! class_exists Personal_Data_Request_Backups
