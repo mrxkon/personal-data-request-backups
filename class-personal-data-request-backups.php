@@ -165,7 +165,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				! current_user_can( 'export_others_personal_data' ) ||
 				! current_user_can( 'erase_others_personal_data' )
 			) {
-				wp_die( 'No access.', 'pdr-backups' );
+				wp_die( esc_html__( 'You do not have access to view this page.', 'pdr-backups' ) );
 			}
 		}
 
