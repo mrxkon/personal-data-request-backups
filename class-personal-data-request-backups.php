@@ -81,7 +81,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 			// Set the cron events.
 			$this->setup_crons();
-			add_action( 'pdr_auto_export', array( $this, 'export_cron' ) );
+			add_action( 'pdr_cron_backup', array( $this, 'backup_cron' ) );
 			add_action( 'pdr_clean_files', array( $this, 'clean_files' ) );
 
 			// Create and set the uploads dir.
@@ -106,8 +106,8 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 			// Create default options.
 			update_option( 'pdr_backups_email', $current_user->user_email );
-			update_option( 'pdr_backups_auto_backup', false );
-			update_option( 'pdr_backups_remove_files', false );
+			update_option( 'pdr_backups_cron_backup', false );
+			update_option( 'pdr_backups_clean_files', false );
 		} // public static function plugin_activate()
 
 
@@ -118,18 +118,13 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Remove options on plugin deactivation.
 		 */
 		public static function plugin_deactivate() {
-			// Remove backup files.
-			if ( get_option( 'pdr_backups_remove_files' ) ) {
-				$this->clean_files();
-			}
-
 			// Remove options.
 			delete_option( 'pdr_backups_email' );
-			delete_option( 'pdr_backups_auto_backup' );
-			delete_option( 'pdr_backups_remove_files' );
+			delete_option( 'pdr_backups_cron_backup' );
+			delete_option( 'pdr_backups_clean_files' );
 
 			// Remove crons.
-			wp_clear_scheduled_hook( 'pdr_auto_export' );
+			wp_clear_scheduled_hook( 'pdr_cron_backup' );
 			wp_clear_scheduled_hook( 'pdr_clean_files' );
 		} // public static function plugin_deactivate()
 
@@ -150,6 +145,59 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				wp_die( 'No access.', 'pdr-backups' );
 			}
 		}
+
+
+
+
+
+		/**
+		 * Save settings.
+		 */
+		public function save_settings() {
+			// Make checks and error out if something is wrong.
+			if ( ! isset( $_POST['pdr_nonce'] ) ) {
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+			}
+
+			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
+
+			if ( ! wp_verify_nonce( $nonce, 'pdr_save_settings' ) ) {
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+			}
+
+			// Cron Backup.
+			if ( isset( $_POST['pdr-cron-backup'] ) ) {
+				$cron_backup = sanitize_text_field( $_POST['pdr-cron-backup'] );
+			}
+
+			if ( 'true' === $cron_backup ) {
+				update_option( 'pdr_backups_cron_backup', true );
+			} else {
+				update_option( 'pdr_backups_cron_backup', false );
+			}
+
+			// Clean files.
+			if ( isset( $_POST['pdr-clean-files'] ) ) {
+				$clean_files = sanitize_text_field( $_POST['pdr-clean-files'] );
+			}
+
+			if ( 'true' === $clean_files ) {
+				update_option( 'pdr_backups_clean_files', true );
+			} else {
+				update_option( 'pdr_backups_clean_files', false );
+			}
+
+			// Email.
+			if ( isset( $_POST['pdr-email-address'] ) ) {
+				$email_address = sanitize_email( $_POST['pdr-email-address'] );
+			}
+
+			if ( is_email( $email_address ) ) {
+				update_option( 'pdr_backups_email', $email_address );
+			}
+
+			wp_send_json_success( esc_html__( 'Settings saved!', 'pdr-backups' ) );
+		} // public function save_settings()
 
 
 
@@ -212,15 +260,15 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 */
 		public function setup_crons() {
 			// Auto backup cron.
-			$enabled = get_option( 'pdr_backups_auto_backup' );
+			$enabled = get_option( 'pdr_backups_cron_backup' );
 
 			if ( $enabled ) {
-				if ( ! wp_next_scheduled( 'pdr_auto_export' ) ) {
-					wp_schedule_event( time(), 'daily', 'pdr_auto_export' );
+				if ( ! wp_next_scheduled( 'pdr_cron_backup' ) ) {
+					wp_schedule_event( time(), 'daily', 'pdr_cron_backup' );
 				}
 			} else {
-				if ( wp_next_scheduled( 'pdr_auto_export' ) ) {
-					wp_clear_scheduled_hook( 'pdr_auto_export' );
+				if ( wp_next_scheduled( 'pdr_cron_backup' ) ) {
+					wp_clear_scheduled_hook( 'pdr_cron_backup' );
 				}
 			}
 
@@ -362,9 +410,9 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
-		 * Cron export.
+		 * Backup cron.
 		 */
-		public function export_cron() {
+		public function backup_cron() {
 			$export = $this->export();
 
 			$to      = get_option( 'pdr_backups_email' );
@@ -390,7 +438,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					$export['file_path'],
 				)
 			);
-		} // public function export_cron()
+		} // public function backup_cron()
 
 
 
@@ -550,7 +598,8 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Import Screen.
 		 */
 		public function import_page() {
-			$auto_export  = get_option( 'pdr_backups_auto_backup' );
+			$cron_backup  = get_option( 'pdr_backups_cron_backup' );
+			$clean_files  = get_option( 'pdr_backups_cron_backup' );
 			$export_email = sanitize_email( get_option( 'pdr_backups_email' ) );
 			?>
 			<div class="wrap pdr-content">
@@ -587,29 +636,42 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 								<p>
 									<input
 										type="checkbox"
-										name="enable-auto-export"
-										id="enable-auto-export"
-										value="<?php echo esc_attr( $auto_export ); ?>"
-										<?php checked( $auto_export, '1', true ); ?>
+										name="pdr-cron-backup"
+										id="pdr-cron-backup"
+										value="<?php echo esc_attr( $cron_backup ); ?>"
+										<?php checked( $cron_backup, '1', true ); ?>
 									/>
-									<label for="enable-auto-export">
+									<label for="pdr-cron-backup">
 											<?php esc_html_e( 'Enable automated export', 'pdr-backups' ); ?>
 									</label>
 								</p>
 								<p>
-									<label for="pdr-email">
+									<input
+										type="checkbox"
+										name="pdr-clean-files"
+										id="pdr-clean-files"
+										value="<?php echo esc_attr( $clean_files ); ?>"
+										<?php checked( $clean_files, '1', true ); ?>
+									/>
+									<label for="pdr-clean-files">
+											<?php esc_html_e( 'Remove backup files on deactivation', 'pdr-backups' ); ?>
+									</label>
+								</p>
+								<p>
+									<label for="pdr-email-address">
 										<?php esc_html_e( 'Enter your e-mail address', 'pdr-backups' ); ?>
 									</label>
 									<input
 										type="email"
-										name="pdr-email"
-										id="pdr-email"
+										name="pdr-email-address"
+										id="pdr-email-address"
 										class="large-text"
 										value="<?php echo esc_attr( $export_email ); ?>" />
 								</p>
 								<p class="form-actions">
 									<span class="msg"></span>
 									<span class="spinner"></span>
+									<?php wp_nonce_field( 'pdr_save_settings', 'pdr-save-settings-nonce' ); ?>
 									<input
 										type="submit"
 										class="button"
@@ -739,10 +801,55 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				( function( $ ) {
 					$( '#pdr-settings-form' ).on( 'submit', function( e ) {
 						e.preventDefault();
-						var spinner = $( this ).find( '.spinner' );
 
+						var cron_backup,
+							clean_files,
+							spinner = $( this ).find( '.spinner' ),
+							msg = $( this ).find( '.msg' );
+
+						if ( $( '#pdr-cron-backup' ).is( ':checked' ) ) {
+							cron_backup = true;
+						} else {
+							cron_backup = false;
+						}
+
+						if ( $( '#pdr-clean-files' ).is( ':checked' ) ) {
+							clean_files = true;
+						} else {
+							clean_files = false;
+						}
+
+						msg.html( '' );
 						spinner.css( 'display', 'inline-block' );
 						spinner.addClass( 'is-active' );
+
+						args = {
+							'action': 'pdr-save-settings',
+							'pdr_nonce': $( '#pdr-save-settings-nonce' ).val(),
+							'pdr-cron-backup': cron_backup,
+							'pdr-clean-files': clean_files,
+							'pdr-email-address': $( '#pdr-email-address' ).val()
+						};
+
+						$.ajax({
+							url: ajaxurl,
+							method: 'POST',
+							global: false,
+							dataType: 'json',
+							data: args,
+							success: function( response ) {
+								if ( true === response.success ) {
+									msg.html( response.data );
+									msg.css( 'color', 'green' );
+								} else {
+									msg.html( response.data );
+									msg.css( 'color', 'red' );
+								}
+
+								spinner.css( 'display', 'none' );
+								spinner.removeClass( 'is-active' );
+							}
+						});
 					});
 
 					$( '#pdr-import-form' ).on( 'submit', function( e ) {
