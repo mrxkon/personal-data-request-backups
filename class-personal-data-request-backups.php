@@ -54,8 +54,10 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 */
 		private $pdr_exports_url;
 
-
-
+		/**
+		 * User capability.
+		 */
+		private $user_cap;
 
 
 		/**
@@ -76,16 +78,19 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Constructor.
 		 */
 		public function __construct() {
-			// Register the plugin on the Import screen.
-			add_action( 'admin_init', array( $this, 'register_importers' ) );
+			// Set user capability.
+			$this->check_capability();
+
+			// Create and set the uploads dir.
+			$this->set_pdr_exports_dir();
 
 			// Set the cron events.
 			$this->setup_crons();
 			add_action( 'pdr_cron_backup', array( $this, 'backup_cron' ) );
 			add_action( 'pdr_clean_files', array( $this, 'clean_files' ) );
 
-			// Create and set the uploads dir.
-			$this->set_pdr_exports_dir();
+			// Add submenu page.
+			add_action( 'admin_menu', array( $this, 'add_submenu' ) );
 
 			// Ajax actions.
 			add_action( 'wp_ajax_pdr-manual-export', array( $this, 'manual_export' ) );
@@ -156,17 +161,28 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
-		 * Check capabilities.
+		 * Set user capability.
 		 */
-		public function check_caps() {
-			if (
-				! current_user_can( 'manage_options' ) ||
-				! current_user_can( 'manage_privacy_options' ) ||
-				! current_user_can( 'export_others_personal_data' ) ||
-				! current_user_can( 'erase_others_personal_data' )
-			) {
-				wp_die( esc_html__( 'You do not have access to view this page.', 'pdr-backups' ) );
+		public function check_capability() {
+			$cap = '';
+
+			if ( current_user_can( 'export_others_personal_data' ) ) {
+				$cap = 'export_others_personal_data';
 			}
+
+			if ( current_user_can( 'erase_others_personal_data' ) ) {
+				$cap = 'erase_others_personal_data';
+			}
+
+			if ( current_user_can( 'manage_privacy_options' ) ) {
+				$cap = 'manage_privacy_options';
+			}
+
+			if ( current_user_can( 'manage_options' ) ) {
+				$cap = 'manage_options';
+			}
+
+			$this->user_cap = $cap;
 		}
 
 
@@ -179,13 +195,13 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		public function save_settings() {
 			// Make checks and error out if something is wrong.
 			if ( ! isset( $_POST['pdr_nonce'] ) ) {
-				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'personal-data-request-backups' ) );
 			}
 
 			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
 
 			if ( ! wp_verify_nonce( $nonce, 'pdr_save_settings' ) ) {
-				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'personal-data-request-backups' ) );
 			}
 
 			// Cron Backup.
@@ -219,7 +235,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				update_option( 'pdr_backups_email', $email_address );
 			}
 
-			wp_send_json_success( esc_html__( 'Settings saved!', 'pdr-backups' ) );
+			wp_send_json_success( esc_html__( 'Settings saved!', 'personal-data-request-backups' ) );
 		} // public function save_settings()
 
 
@@ -261,18 +277,21 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 
 
 		/**
-		 * Register the plugin on the Import screen.
+		 * Add submenu.
 		 */
-		public function register_importers() {
-			$this->check_caps();
-
-			register_importer(
-				'pdr_backups_importer',
-				__( 'Personal Data Request Backups', 'pdr-backups' ),
-				__( 'Import &amp; Export Personal Data Requests', 'pdr-backups' ),
-				array( $this, 'import_page' )
-			);
-		} // public function register_importers()
+		public function add_submenu() {
+			if ( ! empty( $this->user_cap ) ) {
+				add_submenu_page(
+					'tools.php',
+					esc_html__( 'Personal Data Request Backups', 'personal-data-request-backups' ),
+					esc_html__( 'Personal Data Request Backups', 'personal-data-request-backups' ),
+					$this->user_cap,
+					'personal-data-request-backups',
+					array( $this, 'pdr_page' ),
+					null
+				);
+			}
+		} // public function add_submenu()
 
 
 
@@ -330,20 +349,20 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		public function manual_import() {
 			// Make checks and error out if something is wrong.
 			if ( ! isset( $_POST['pdr_nonce'] ) ) {
-				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'personal-data-request-backups' ) );
 			}
 
 			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
 
 			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_import' ) ) {
-				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'personal-data-request-backups' ) );
 			}
 
 			if (
 				empty( $_FILES['pdr-file']['name'] ) ||
 				'json' !== strtolower( pathinfo( $_FILES['pdr-file']['name'], PATHINFO_EXTENSION ) )
 			) {
-				wp_send_json_error( esc_html__( 'Please upload the json file.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'Please upload the json file.', 'personal-data-request-backups' ) );
 			}
 
 			// Clean the database from existing requests.
@@ -387,7 +406,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				);
 
 				if ( 0 === $ex_post || is_wp_error( $ex_post ) ) {
-					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'pdr-backups' ) );
+					wp_send_json_error( esc_html__( 'Could not import all Export Requests.', 'personal-data-request-backups' ) );
 				}
 			}
 
@@ -421,11 +440,11 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 				);
 
 				if ( 0 === $er_post || is_wp_error( $ex_post ) ) {
-					wp_send_json_error( esc_html__( 'Could not import all Erasure Requests.', 'pdr-backups' ) );
+					wp_send_json_error( esc_html__( 'Could not import all Erasure Requests.', 'personal-data-request-backups' ) );
 				}
 			}
 
-			wp_send_json_success( esc_html__( 'Success!', 'pdr-backups' ) );
+			wp_send_json_success( esc_html__( 'Success!', 'personal-data-request-backups' ) );
 		} // public function import()
 
 
@@ -441,13 +460,13 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			$to      = get_option( 'pdr_backups_email' );
 			$subject = sprintf(
 				// translators: $1%s The site URL.
-				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
+				esc_html__( 'Personal Data Request Backups - %1$s', 'personal-data-request-backups' ),
 				get_site_url()
 			);
 			$subject = apply_filters( 'pdr_backups_email_subject', $subject );
 			$message = sprintf(
 				// translators: $1%s The site URL.
-				esc_html__( 'Personal Data Request Backups - %1$s', 'pdr-backups' ),
+				esc_html__( 'Personal Data Request Backups - %1$s', 'personal-data-request-backups' ),
 				get_site_url()
 			);
 			$message = apply_filters( 'pdr_backups_email_message', $message );
@@ -472,13 +491,13 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		public function manual_export() {
 			// Make checks and error out if something is wrong.
 			if ( ! isset( $_POST['pdr_nonce'] ) ) {
-				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'pdr_nonce does not exist.', 'personal-data-request-backups' ) );
 			}
 
 			$nonce = sanitize_text_field( $_POST['pdr_nonce'] );
 
 			if ( ! wp_verify_nonce( $nonce, 'pdr_manual_export' ) ) {
-				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'pdr-backups' ) );
+				wp_send_json_error( esc_html__( 'The nonce could not be verified.', 'personal-data-request-backups' ) );
 			}
 
 			$export = $this->export();
@@ -617,41 +636,41 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		/**
 		 * Import Screen.
 		 */
-		public function import_page() {
+		public function pdr_page() {
 			$cron_backup  = get_option( 'pdr_backups_cron_backup' );
 			$clean_files  = get_option( 'pdr_backups_clean_files' );
 			$export_email = sanitize_email( get_option( 'pdr_backups_email' ) );
 			?>
 			<div class="wrap pdr-content">
-				<h1><?php esc_html_e( 'Personal Data Request Backups', 'pdr-backups' ); ?></h1>
+				<h1><?php esc_html_e( 'Personal Data Request Backups', 'personal-data-request-backups' ); ?></h1>
 				<p>
 					<?php
 					echo sprintf(
 						// translators: %1$s Links to Export Personal Data screen. %2$s Links to Erase Personal Data screen.
-						__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> Requests.', 'pdr-backups' ),
+						__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> Requests.', 'personal-data-request-backups' ),
 						esc_attr( admin_url( 'export-personal-data.php' ) ),
 						esc_attr( admin_url( 'erase-personal-data.php' ) )
 					);
 					?>
 				</p>
 				<p>
-					<?php esc_html_e( 'This leads to an issue as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'pdr-backups' ); ?>
+					<?php esc_html_e( 'This leads to an issue as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'personal-data-request-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'Exporting &amp; importing the Personal Data Requests as a separate backup will help you on keeping always the latest possible separate copy of the requests occasions like that.', 'pdr-backups' ); ?>
+					<?php esc_html_e( 'Exporting &amp; importing the Personal Data Requests as a separate backup will help you on keeping always the latest possible separate copy of the requests occasions like that.', 'personal-data-request-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily basis or manually request an additional Export.', 'pdr-backups' ); ?>
+					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily basis or manually request an additional Export.', 'personal-data-request-backups' ); ?>
 				</p>
 				<div class="notice notice-warning inline">
 					<p>
-						<?php _e( '<strong>Important!</strong> By importing an existing JSON file all current Requests that are registered in the database will be removed. Both of the Export Personal Data &amp; Erasure Personal Data request lists will be re-created exactly as they are found in the JSON file.', 'pdr-backups' ); ?>
+						<?php _e( '<strong>Important!</strong> By importing an existing JSON file all current Requests that are registered in the database will be removed. Both of the Export Personal Data &amp; Erasure Personal Data request lists will be re-created exactly as they are found in the JSON file.', 'personal-data-request-backups' ); ?>
 					</p>
 				</div>
 				<div class="pdr-forms">
 					<div class="form-wrapper">
 						<div class="form-content">
-							<h2><?php esc_html_e( 'Settings', 'pdr-backups' ); ?></h2>
+							<h2><?php esc_html_e( 'Settings', 'personal-data-request-backups' ); ?></h2>
 							<form method="post" id="pdr-settings-form">
 								<p>
 									<input
@@ -662,7 +681,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										<?php checked( $cron_backup, '1', true ); ?>
 									/>
 									<label for="pdr-cron-backup">
-											<?php esc_html_e( 'Enable automated backups', 'pdr-backups' ); ?>
+											<?php esc_html_e( 'Enable automated backups', 'personal-data-request-backups' ); ?>
 									</label>
 								</p>
 								<p>
@@ -674,12 +693,12 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										<?php checked( $clean_files, '1', true ); ?>
 									/>
 									<label for="pdr-clean-files">
-											<?php esc_html_e( 'Remove backup files on plugin deletion', 'pdr-backups' ); ?>
+											<?php esc_html_e( 'Remove backup files on plugin deletion', 'personal-data-request-backups' ); ?>
 									</label>
 								</p>
 								<p>
 									<label for="pdr-email-address">
-										<?php esc_html_e( 'Enter e-mail address to receive backups', 'pdr-backups' ); ?>
+										<?php esc_html_e( 'Enter e-mail address to receive backups', 'personal-data-request-backups' ); ?>
 									</label>
 									<input
 										type="email"
@@ -695,7 +714,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 									<input
 										type="submit"
 										class="button"
-										value="<?php esc_html_e( 'Save', 'pdr-backups' ); ?>"
+										value="<?php esc_html_e( 'Save', 'personal-data-request-backups' ); ?>"
 									/>
 								</p>
 							</form>
@@ -703,7 +722,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					</div>
 					<div class="form-wrapper">
 						<div class="form-content">
-							<h2><?php esc_html_e( 'Import', 'pdr-backups' ); ?></h2>
+							<h2><?php esc_html_e( 'Import', 'personal-data-request-backups' ); ?></h2>
 							<form method="post" id="pdr-import-form" enctype="multipart/form-data">
 								<p>
 									<input
@@ -719,7 +738,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 									<input
 										type="submit"
 										class="button"
-										value="<?php esc_html_e( 'Import', 'pdr-backups' ); ?>"
+										value="<?php esc_html_e( 'Import', 'personal-data-request-backups' ); ?>"
 									/>
 								</p>
 							</form>
@@ -727,10 +746,10 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					</div>
 					<div class="form-wrapper">
 						<div class="form-content">
-							<h2><?php esc_html_e( 'Export', 'pdr-backups' ); ?></h2>
+							<h2><?php esc_html_e( 'Export', 'personal-data-request-backups' ); ?></h2>
 							<form method="post" id="pdr-export-form">
 								<p>
-									<?php esc_html_e( 'You will be prompted to save a file.', 'pdr-backups' ); ?>
+									<?php esc_html_e( 'You will be prompted to save a file.', 'personal-data-request-backups' ); ?>
 								</p>
 								<p class="form-actions">
 									<span class="msg"></span>
@@ -739,7 +758,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 									<input
 										type="submit"
 										class="button button-primary"
-										value="<?php esc_html_e( 'Export', 'pdr-backups' ); ?>"
+										value="<?php esc_html_e( 'Export', 'personal-data-request-backups' ); ?>"
 									/>
 								</p>
 							</form>
