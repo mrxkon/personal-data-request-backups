@@ -118,6 +118,21 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Remove options on plugin deactivation.
 		 */
 		public static function plugin_deactivate() {
+			if ( get_option( 'pdr_backups_clean_files' ) ) {
+				// Find WP uploads directory.
+				$wp_upload_dir = wp_upload_dir();
+
+				// Populate the plugin path.
+				$pdr_exports_dir = wp_normalize_path( trailingslashit( $wp_upload_dir['basedir'] ) . 'pdr-backups/' );
+
+				// Remove files.
+				$files = array_diff( scandir( $pdr_exports_dir ), array( '..', '.', 'index.html' ) );
+
+				foreach ( $files as $file ) {
+					wp_delete_file( $pdr_exports_dir . $file );
+				}
+			}
+
 			// Remove options.
 			delete_option( 'pdr_backups_email' );
 			delete_option( 'pdr_backups_cron_backup' );
@@ -596,7 +611,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 */
 		public function import_page() {
 			$cron_backup  = get_option( 'pdr_backups_cron_backup' );
-			$clean_files  = get_option( 'pdr_backups_cron_backup' );
+			$clean_files  = get_option( 'pdr_backups_clean_files' );
 			$export_email = sanitize_email( get_option( 'pdr_backups_email' ) );
 			?>
 			<div class="wrap pdr-content">
