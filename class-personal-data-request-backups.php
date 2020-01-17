@@ -606,26 +606,30 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			?>
 			<!-- Wrapper -->
 			<div class="wrap pdr-content">
-				<h1><?php esc_html_e( 'Personal Data Request Backups', 'personal-data-request-backups' ); ?></h1>
-				<p>
-					<?php
-					echo sprintf(
-						// translators: %1$s Links to Export Personal Data screen. %2$s Links to Erase Personal Data screen.
-						__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> requests.', 'personal-data-request-backups' ),
-						esc_attr( admin_url( 'export-personal-data.php' ) ),
-						esc_attr( admin_url( 'erase-personal-data.php' ) )
-					);
-					?>
-				</p>
-				<p>
-					<?php esc_html_e( 'This leads to an issue as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'personal-data-request-backups' ); ?>
-				</p>
-				<p>
-					<?php esc_html_e( 'Keeping a separate backup will help you on having always the latest possible copy of the requests for occasions like that.', 'personal-data-request-backups' ); ?>
-				</p>
-				<p>
-					<?php esc_html_e( 'You can set up an e-mail to receive the backup as an attached file on a daily basis or manually create additional backups.', 'personal-data-request-backups' ); ?>
-				</p>
+				<!-- Info -->
+				<div class="info">
+					<h1><?php esc_html_e( 'Personal Data Request Backups', 'personal-data-request-backups' ); ?></h1>
+					<p>
+						<?php
+						echo sprintf(
+							// translators: %1$s Links to Export Personal Data screen. %2$s Links to Erase Personal Data screen.
+							__( 'When you restore your website to an earlier backup you might lose some of the <a href="%1$s">Personal Data Export</a> &amp; <a href="%2$s">Personal Data Erasure</a> requests.', 'personal-data-request-backups' ),
+							esc_attr( admin_url( 'export-personal-data.php' ) ),
+							esc_attr( admin_url( 'erase-personal-data.php' ) )
+						);
+						?>
+					</p>
+					<p>
+						<?php esc_html_e( 'This leads to an issue as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'personal-data-request-backups' ); ?>
+					</p>
+					<p>
+						<?php esc_html_e( 'Keeping a separate backup will help you on having always the latest possible copy of the requests for occasions like that.', 'personal-data-request-backups' ); ?>
+					</p>
+					<p>
+						<?php esc_html_e( 'You can set up an e-mail to receive the backup as an attached file on a daily basis or manually create additional backups.', 'personal-data-request-backups' ); ?>
+					</p>
+				</div>
+				<!-- / Info -->
 
 				<!-- Boxes -->
 				<div class="pdr-forms">
@@ -753,6 +757,27 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			<style>
 				.pdr-content {
 					max-width: 850px;
+				}
+
+				.pdr-content .info {
+					position: relative;
+					border: 1px solid #ccd0d4;
+					box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+					background: #fff;
+					padding: 10px;
+					margin-bottom: 10px;
+				}
+
+				.pdr-content .info h1,
+				.pdr-content .info p,
+				.pdr-content .pdr-forms h2,
+				.pdr-content .pdr-forms p {
+					margin: 10px 0;
+					padding: 0;
+				}
+
+				.pdr-content .info h1 {
+					margin-top: 0;
 				}
 
 				.pdr-content .pdr-forms {
