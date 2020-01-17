@@ -16,13 +16,13 @@
 
 ---
 
-When you restore your website to an earlier backup you might lose some of the Personal Data Export & Personal Data Erasure Requests.
+When you restore your website to an earlier backup you might lose some of the Personal Data Export & Personal Data Erasure requests.
 
-This creates a problem as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.
+This leads to an issue as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.
 
-Exporting & importing the Personal Data Requests as a separate backup will help you on keeping always a latest separate copy of the requests for an occasion like that.
+Keeping a separate backup will help you on having always the latest possible copy of the requests for occasions like that.
 
-You can set up an e-mail to receive the attached file of the backup on a daily cron or manually request an additional Export when needed.
+You can set up an e-mail to receive the backup as an attached file on a daily basis or manually create additional backups.
 
 ![Screenshot](https://raw.githubusercontent.com/mrxkon/personal-data-request-backups/master/assets/screenshot1.png)
 
