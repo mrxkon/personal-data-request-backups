@@ -101,11 +101,11 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 		 * Populate options on plugin activation.
 		 */
 		public static function plugin_activate() {
-			// Get current user.
-			$current_user = wp_get_current_user();
-
 			// Create default options if they don't exist.
 			if ( ! get_option( 'pdr_backups_email' ) ) {
+				// Get current user.
+				$current_user = wp_get_current_user();
+
 				update_option( 'pdr_backups_email', $current_user->user_email );
 			}
 
