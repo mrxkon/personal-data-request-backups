@@ -531,14 +531,11 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 			fwrite( $file, $data );
 			fclose( $file );
 
-			// Send the file for download.
-			$pdr_file_url = array(
+			return array(
 				'file_url'  => $this->pdr_exports_url . $json_file_name,
 				'file_path' => $this->pdr_exports_dir . $json_file_name,
 				'file_name' => $json_file_name,
 			);
-
-			return $pdr_file_url;
 		} // public function export()
 
 
@@ -642,7 +639,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 										<?php checked( $cron_backup, '1', true ); ?>
 									/>
 									<label for="pdr-cron-backup">
-											<?php esc_html_e( 'Enable automated export', 'pdr-backups' ); ?>
+											<?php esc_html_e( 'Enable automated backups', 'pdr-backups' ); ?>
 									</label>
 								</p>
 								<p>
@@ -659,7 +656,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 								</p>
 								<p>
 									<label for="pdr-email-address">
-										<?php esc_html_e( 'Enter your e-mail address', 'pdr-backups' ); ?>
+										<?php esc_html_e( 'Enter e-mail address to receive backups', 'pdr-backups' ); ?>
 									</label>
 									<input
 										type="email"
