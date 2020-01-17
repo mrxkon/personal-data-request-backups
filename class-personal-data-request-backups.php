@@ -618,7 +618,7 @@ if ( ! class_exists( 'Personal_Data_Request_Backups' ) ) {
 					<?php esc_html_e( 'This creates a problem as you might have newer requests especially for Erasures that will need to be fulfilled again according to the regulations.', 'pdr-backups' ); ?>
 				</p>
 				<p>
-					<?php esc_html_e( 'Exporting &amp; importing the Personal Data equests as a separate backup will help you on keeping always a latest separate copy of the requests for an occasion like that.', 'pdr-backups' ); ?>
+					<?php esc_html_e( 'Exporting &amp; importing the Personal Data Requests as a separate backup will help you on keeping always a latest separate copy of the requests for an occasion like that.', 'pdr-backups' ); ?>
 				</p>
 				<p>
 					<?php esc_html_e( 'You can set up an e-mail to receive the attached file of the backup on a daily cron or manually request an additional Export when needed.', 'pdr-backups' ); ?>
