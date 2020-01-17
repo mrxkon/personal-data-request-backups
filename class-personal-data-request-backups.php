@@ -9,8 +9,6 @@
  * Author URI:        https://xkon.gr
  * License:           GPLv2 or later
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain:       pdr-backups
- * Domain Path:       /languages
  *
  * Copyright (C) 2019 Konstantinos Xenos (https://xkon.gr).
  *
